@@ -750,18 +750,32 @@ static int frameThread(void * unused)
 
 int spiceThread(void * arg)
 {
-  while(g_state.state != APP_STATE_SHUTDOWN)
+  while(state.state != APP_STATE_SHUTDOWN)
     if (!spice_process(1000))
     {
-      if (g_state.state != APP_STATE_SHUTDOWN)
+      DEBUG_ERROR("Error in spice connection. Trying to restart");
+
+      spice_disconnect();
+      if (!spice_connect(params.spiceHost, params.spicePort, ""))
       {
-        g_state.state = APP_STATE_SHUTDOWN;
-        DEBUG_ERROR("failed to process spice messages");
+        DEBUG_ERROR("Failed to reconnect to spice server");
+        break;
       }
-      break;
+
+      if (spice_process(1000)){
+        spice_mouse_mode(true);
+      } else {
+
+        if (state.state != APP_STATE_SHUTDOWN)
+        {
+          state.state = APP_STATE_SHUTDOWN;
+          DEBUG_ERROR("failed to process spice messages");
+        }
+        break;
+      }
     }
 
-  g_state.state = APP_STATE_SHUTDOWN;
+  state.state = APP_STATE_SHUTDOWN;
   return 0;
 }
 
