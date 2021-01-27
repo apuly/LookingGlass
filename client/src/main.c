@@ -493,17 +493,32 @@ int spiceThread(void * arg)
   while(state.state != APP_STATE_SHUTDOWN)
     if (!spice_process(1000))
     {
-      if (state.state != APP_STATE_SHUTDOWN)
+      DEBUG_ERROR("Error in spice connection. Trying to restart");
+
+      spice_disconnect();
+      if (!spice_connect(params.spiceHost, params.spicePort, ""))
       {
-        state.state = APP_STATE_SHUTDOWN;
-        DEBUG_ERROR("failed to process spice messages");
+        DEBUG_ERROR("Failed to reconnect to spice server");
+        break;
       }
-      break;
+
+      if (spice_process(1000)){
+        spice_mouse_mode(true);
+      } else {
+
+        if (state.state != APP_STATE_SHUTDOWN)
+        {
+          state.state = APP_STATE_SHUTDOWN;
+          DEBUG_ERROR("failed to process spice messages");
+        }
+        break;
+      }
     }
 
   state.state = APP_STATE_SHUTDOWN;
   return 0;
 }
+
 
 static inline const uint32_t mapScancode(SDL_Scancode scancode)
 {
